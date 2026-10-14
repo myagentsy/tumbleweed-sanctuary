@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#e9e5dc">
+<meta name="description" content="Explore Tumbleweed Sanctuary in 3D. Compare existing conditions with the uploaded parking proposal across all four parcels and 57890 Pueblo Trail.">
+<title>Tumbleweed Sanctuary · 3D Site Study</title>
+<link rel="stylesheet" href="assets/style.css">
+<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>
+</head>
+<body>
+<main id="app">
+ <div id="scene" aria-label="Interactive 3D model. Drag to rotate, scroll or pinch to zoom, right-drag or two-finger drag to pan."></div>
+ <div id="labels" aria-hidden="true"></div>
+ <header class="masthead"><div class="brandmark" aria-hidden="true">✳</div><div><span class="eyebrow">YUCCA VALLEY · SITE STUDY</span><h1>Tumbleweed Sanctuary</h1></div><button id="info" class="round" title="Sources and model accuracy" aria-label="Sources and model accuracy">i</button></header>
+ <section class="panel" aria-label="Model controls">
+  <span class="eyebrow">EXPLORE THE CHANGE</span>
+  <div class="switch" role="group" aria-label="Site condition"><button id="existing" class="active" aria-pressed="true">Existing</button><button id="proposed" aria-pressed="false">Proposed</button></div>
+  <div class="statusline"><span id="statusdot"></span><span id="status">Current landscape</span></div>
+  <h2 id="scene-title">Open desert. Four parcels.</h2>
+  <p id="scene-description">Explore the open north lot, sanctuary and southern gardens alongside 57890 Pueblo Trail.</p>
+  <div class="stats"><div><strong id="stat-one">4</strong><span id="stat-one-label">sanctuary parcels</span></div><div><strong id="stat-two">+ home</strong><span id="stat-two-label">57890 Pueblo Trail</span></div></div>
+  <div class="divider"></div>
+  <span class="eyebrow">LOOK AROUND</span>
+  <div class="view-buttons"><button data-view="overview" class="selected">Whole site</button><button data-view="parking">North lot</button><button data-view="top">Top down</button></div>
+  <div class="options"><label><input id="boundaries" type="checkbox" checked><span>Parcel boundaries</span></label><label><input id="show-labels" type="checkbox" checked><span>Place labels</span></label><label><input id="show-cars" type="checkbox"><span>Illustrative parked cars</span></label></div>
+  <button id="open-refs" class="source-link">Plans, photos & accuracy <span>↗</span></button>
+ </section>
+ <div class="north-indicator" aria-label="North direction"><svg id="north-arrow" width="34" height="40" viewBox="0 0 34 40"><path d="M17 3 26 28 17 23 8 28Z" fill="#314743"/><path d="M17 3 17 23 8 28Z" fill="#789087"/></svg><b>N</b></div>
+ <nav class="navigation" aria-label="Camera tools"><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><button id="reset" title="Reset view" aria-label="Reset view">↺</button><button id="rotate" title="Auto rotate" aria-label="Auto rotate" aria-pressed="false">⟳</button><button id="fullscreen" title="Fullscreen" aria-label="Fullscreen">⛶</button></nav>
+ <footer><div><span class="dot"></span><span id="foot-condition">EXISTING CONDITIONS</span><span class="footer-sep">/</span><span>PLAN-BASED 3D</span></div><span class="gesture">Drag to orbit · Scroll to zoom · Right-drag to pan</span></footer>
+ <div id="loading"><div class="spinner"></div><h2>Assembling the sanctuary</h2><p>Plans, parcels and landscape</p></div>
+ <dialog id="reference-dialog"><div class="dialog-top"><div><span class="eyebrow">THE BASIS OF THE MODEL</span><h2>Plans, photos & accuracy</h2></div><button id="close-refs" class="round" aria-label="Close">×</button></div><div class="reference-content">
+ <p class="lead">A dimensioned planning visualization for exploring the site and its proposed changes.</p>
+ <div class="reference-grid"><section><h3>What is grounded</h3><ul><li>Four sanctuary parcels and the adjoining residence parcel.</li><li>North lot: 290 × 131 ft; 41 proposed parking spaces.</li><li>6 ft residential-side screening and 4 ft street-side screening as drawn, including the 4 ft return sections.</li><li>24 ft driveway and 6 ft sidewalk.</li><li>Nine pole-mounted fixtures at 8 ft mounting height, from sheet C1.</li><li>Residence footprint from county GIS; building heights from the county’s 2021 dataset.</li></ul></section><section><h3>What is simplified</h3><ul id="accuracy-notes"></ul></section></div>
+ <section><h3>Uploaded architectural plans</h3><p>Loescher Meachem Architects · sheets dated October 31, 2025; C1 dated November 3, 2025. The proposal is shown as submitted in this file, not as an approved design.</p><a class="download" href="assets/tumbleweed-plans.pdf" target="_blank" rel="noopener">Open original 9-page PDF ↗</a><div class="plan-tabs"><button data-sheet="1">A1 · North lot</button><button data-sheet="2">A2 · Sanctuary</button><button data-sheet="3">A3 · Gardens</button><button data-sheet="4">B1 · Planting</button><button data-sheet="7">C1 · Lighting</button></div><a id="plan-link" href="assets/plan-1.jpg" target="_blank" rel="noopener"><img id="plan-image" src="assets/plan-1.jpg" alt="A1 north parking lot site plan" loading="lazy"></a></section>
+ <section><h3>Photo references</h3><p>Uploaded site photos inform building colors, fencing, vegetation and the open-lot appearance.</p><div class="photos" id="photos"></div></section>
+ <section><h3>Supplemental data</h3><p><a href="https://ceqanet.lci.ca.gov/2026100001" target="_blank" rel="noopener">State project record</a> · <a href="https://maps.sbcounty.gov/gis/rest/services/Assessor/cAESGISTable_V2/MapServer/3" target="_blank" rel="noopener">County parcel geometry</a> · <a href="https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/SBCounty_3D_Basemap_2021_WSL1/FeatureServer/0" target="_blank" rel="noopener">County 2021 building geometry</a></p><p>Ground is deliberately shown level. This model does not establish grading, legal boundaries, drainage, noise, or light trespass. County and plan boundaries differ slightly; the architectural plans control the sanctuary layout.</p></section>
+ </div></dialog>
+</main>
+<script type="module" src="assets/app.js"></script>
+</body></html>
