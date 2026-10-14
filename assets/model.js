@@ -9,11 +9,11 @@ export function buildModel(data) {
  const mat=(color,opts={})=>new THREE.MeshStandardMaterial({color,roughness:.92,...opts});
  const m={sand:mat('#cfbda0'),site:mat('#d9c9ac'),native:mat('#cabb9d'),asphalt:mat('#595f5b'),oldpave:mat('#b6b4a5'),concrete:mat('#ded8c6'),wall:mat('#c9b79b'),wood:mat('#694d3b'),bark:mat('#7a664b'),leaf:mat('#75845c'),leaf2:mat('#a2a17a'),shrub:mat('#929774'),roof:mat('#576e67',{metalness:.25,roughness:.68}),white:mat('#eae5d7'),glass:mat('#6c807c',{roughness:.42}),dark:mat('#46524a'),stripe:mat('#f0e8d3'),clay:mat('#ad7552'),rock:mat('#b9ad95'),blue:mat('#638994')};
  function add(geo,material,group=common,x=0,y=0,z=0){let o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o;}
- function box(x,z,w,d,h,material,group=common,y=0){return add(new THREE.BoxGeometry(w,h,d),material,group,x,y+h/2,z);}
- function poly(points,material,group=common,y=.03,depth=0){const s=new THREE.Shape();points.forEach((p,i)=>i?s.lineTo(p[0],-p[1]):s.moveTo(p[0],-p[1]));s.closePath();const geo=depth?new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:false}):new THREE.ShapeGeometry(s);geo.rotateX(-Math.PI/2);return add(geo,material,group,0,y,0);}
+ function box(x,z,w,d,h,material,group=common,y=0){const o=add(new THREE.BoxGeometry(w,h,d),material,group,x,y+h/2,z);o.castShadow=h>.5;return o;}
+ function poly(points,material,group=common,y=.03,depth=0){const s=new THREE.Shape();points.forEach((p,i)=>i?s.lineTo(p[0],-p[1]):s.moveTo(p[0],-p[1]));s.closePath();const geo=depth?new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:false}):new THREE.ShapeGeometry(s);geo.rotateX(-Math.PI/2);const o=add(geo,material,group,0,y,0);o.castShadow=depth>.5;return o;}
  function line(points,color='#758a69',group=common,y=.24,dashed=false){const geo=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(p[0],y,p[1])));const material=dashed?new THREE.LineDashedMaterial({color,dashSize:3,gapSize:2}):new THREE.LineBasicMaterial({color});const o=new THREE.Line(geo,material);if(dashed)o.computeLineDistances();group.add(o);return o;}
  function wall(a,b,height,material=m.wall,group=common,width=.7){const dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz);const o=box((a[0]+b[0])/2,(a[1]+b[1])/2,l,width,height,material,group);o.rotation.y=-Math.atan2(dz,dx);return o;}
- function path(points,width,material=m.concrete,group=common,y=.08,smooth=true){const c=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],y,p[1])));const pts=smooth?c.getPoints(90):points.map(p=>new THREE.Vector3(p[0],y,p[1]));const vs=[],ix=[];pts.forEach((p,i)=>{const prev=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)],v=next.clone().sub(prev).normalize(),n=new THREE.Vector3(-v.z,0,v.x).multiplyScalar(width/2);vs.push(...p.clone().add(n).toArray(),...p.clone().sub(n).toArray());if(i)ix.push((i-1)*2,(i-1)*2+1,i*2,(i-1)*2+1,i*2+1,i*2);});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vs,3));g.setIndex(ix);g.computeVertexNormals();const o=add(g,material,group);o.material.side=THREE.DoubleSide;return o;}
+ function path(points,width,material=m.concrete,group=common,y=.08,smooth=true){const c=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],y,p[1])));const pts=smooth?c.getPoints(90):points.map(p=>new THREE.Vector3(p[0],y,p[1]));const vs=[],ix=[];pts.forEach((p,i)=>{const prev=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)],v=next.clone().sub(prev).normalize(),n=new THREE.Vector3(-v.z,0,v.x).multiplyScalar(width/2);vs.push(...p.clone().add(n).toArray(),...p.clone().sub(n).toArray());if(i)ix.push((i-1)*2,(i-1)*2+1,i*2,(i-1)*2+1,i*2+1,i*2);});const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vs,3));g.setIndex(ix);g.computeVertexNormals();const o=add(g,material,group);o.castShadow=false;o.material.side=THREE.DoubleSide;return o;}
  function roof(x,z,w,d,eave,ridge,group=common,material=m.roof){const v=[[-w/2,eave,-d/2],[w/2,eave,-d/2],[0,ridge,-d/2],[-w/2,eave,d/2],[w/2,eave,d/2],[0,ridge,d/2]];const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v.flat(),3));g.setIndex([0,3,2,2,3,5,2,5,1,1,5,4]);g.computeVertexNormals();const o=add(g,material,group,x,0,z);o.material.side=THREE.DoubleSide;const gable=new THREE.BufferGeometry();gable.setAttribute('position',new THREE.Float32BufferAttribute(v.flat(),3));gable.setIndex([0,2,1,3,4,5]);gable.computeVertexNormals();add(gable,m.white,group,x,0,z).material.side=THREE.DoubleSide;return o;}
  const instanced=[];const geo={bush:new THREE.IcosahedronGeometry(1,1),tuft:new THREE.IcosahedronGeometry(1,0),trunk:new THREE.CylinderGeometry(1,1,1,6),leaf:new THREE.ConeGeometry(1,1,4),rock:new THREE.IcosahedronGeometry(1,0)};
  const buckets=new Map();const temp=new THREE.Object3D();
@@ -32,12 +32,13 @@ export function buildModel(data) {
  for(const p of data.parcels)poly(p.points,p.apn.endsWith('01')?m.site:m.sand,common,.045);
  poly(data.house.parcel,mat('#d0bea0'),common,.06);
  // Existing roads, including the T-junction on the east.
- box(85,30,590,28,.14,m.asphalt,common);
- box(320,-90,28,238,.14,m.asphalt,common);
+ // One continuous road surface: no coplanar intersection at the junction.
+ const road=poly([[-210,16],[306,16],[306,-209],[334,-209],[334,16],[380,16],[380,44],[-210,44]],m.asphalt,common,.14);road.name='Road surface';
  // Proposed frontage widening, curb, gutter and sidewalk.
  box(145,12,290,8,.17,m.asphalt,proposed);
  box(302,-65.5,8,131,.17,m.asphalt,proposed);
- box(145,7,290,6,.3,m.concrete,proposed);
+ box(172.467/2,7,172.467,6,.3,m.concrete,proposed);
+ box((196.467+290)/2,7,290-196.467,6,.3,m.concrete,proposed);
  box(297,-65.5,6,131,.3,m.concrete,proposed);
  path([[267,7],[283,7],[292,2],[297,-8],[297,-22]],6,m.concrete,proposed,.32);
  wall([0,10],[269,10],.45,m.concrete,proposed,.5);wall([300,-131],[300,-17],.45,m.concrete,proposed,.5);
@@ -96,7 +97,7 @@ export function buildModel(data) {
  // Parking pavement with a rounded southeast corner.
  const lot=[[80.8,-66.83],[290,-66.83],[290,-20]];
  for(let a=0;a<=Math.PI/2+.001;a+=Math.PI/24)lot.push([270+20*Math.cos(a),-20+20*Math.sin(a)]);
- lot.push([80.8,0]);poly(lot,m.asphalt,proposed,.22);
+ lot.push([80.8,0]);const parkingSurface=poly(lot,m.asphalt,proposed,.22);parkingSurface.name='North parking surface';
  // Plant islands at northeast and southeast, drawn over paving.
  poly([[265,-66.4],[289.5,-66.4],[289.5,-51.3],[271,-51.3],[266,-53]],m.site,proposed,.27);
  poly([[266,-18],[288,-18],[283,-7],[273,-1],[266,-1]],m.site,proposed,.27);

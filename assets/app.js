@@ -6,7 +6,7 @@ const $=s=>document.querySelector(s),host=$('#scene');
 try {
  const response=await fetch('assets/site-data.json');if(!response.ok)throw new Error('The model data could not be loaded.');
  const data=await response.json();
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,logarithmicDepthBuffer:true,powerPreference:'high-performance'});
  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;host.appendChild(renderer.domElement);
  const scene=new THREE.Scene();scene.background=new THREE.Color('#e9e5dc');scene.fog=new THREE.Fog('#e9e5dc',1550,3000);
  scene.add(new THREE.HemisphereLight('#fff8e6','#c6b59c',2.1));
@@ -14,7 +14,7 @@ try {
  const fill=new THREE.DirectionalLight('#dce7df',.9);fill.position.set(350,280,520);scene.add(fill);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(8000,8000),new THREE.MeshStandardMaterial({color:'#e9e5dc',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-7.12;floor.receiveShadow=true;scene.add(floor);
  const model=buildModel(data);scene.add(model.root);
- const camera=new THREE.PerspectiveCamera(39,innerWidth/innerHeight,.4,5000);
+ const camera=new THREE.PerspectiveCamera(39,innerWidth/innerHeight,2,5000);
  const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=80;controls.maxDistance=2000;controls.maxPolarAngle=Math.PI*.485;controls.minPolarAngle=.03;controls.autoRotateSpeed=.35;controls.screenSpacePanning=true;
  const mobile=()=>innerWidth<=700;
  const views={overview:{position:[-580,780,-650],target:[87,0,252]},parking:{position:[-180,295,-425],target:[88,0,-50]},top:{position:[95,1150,260],target:[95,0,265]}};
@@ -31,7 +31,7 @@ try {
  $('#existing').onclick=()=>setState(false);$('#proposed').onclick=()=>setState(true);
  $('#boundaries').onchange=e=>model.boundaries.visible=e.target.checked;$('#show-labels').onchange=e=>$('#labels').style.visibility=e.target.checked?'visible':'hidden';$('#show-cars').onchange=e=>{showCars=e.target.checked;model.setState(isProposed,showCars);};
  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('#reset').onclick=()=>{controls.autoRotate=false;$('#rotate').setAttribute('aria-pressed','false');setView('overview');};
- function zoom(f){transition=null;camera.position.sub(controls.target).multiplyScalar(f).add(controls.target);controls.update();}$('#zoom-in').onclick=()=>zoom(.82);$('#zoom-out').onclick=()=>zoom(1.22);
+ function zoom(f){transition=null;const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*f,controls.minDistance,controls.maxDistance));camera.position.copy(controls.target).add(offset);controls.update();}$('#zoom-in').onclick=()=>zoom(.82);$('#zoom-out').onclick=()=>zoom(1.22);
  $('#rotate').onclick=()=>{controls.autoRotate=!controls.autoRotate;$('#rotate').setAttribute('aria-pressed',String(controls.autoRotate));};$('#fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else $('#app').requestFullscreen?.();};controls.addEventListener('start',()=>{transition=null;});
  const dialog=$('#reference-dialog');function openRefs(){dialog.showModal();controls.autoRotate=false;$('#rotate').setAttribute('aria-pressed','false');}$('#info').onclick=openRefs;$('#open-refs').onclick=openRefs;$('#close-refs').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
  for(const note of [data.notes[2],data.notes[4],data.notes[5]]){const li=document.createElement('li');li.textContent=note;$('#accuracy-notes').appendChild(li);}
