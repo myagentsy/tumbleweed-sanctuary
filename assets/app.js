@@ -15,11 +15,13 @@ try {
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(8000,8000),new THREE.MeshStandardMaterial({color:'#e9e5dc',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-7.12;floor.receiveShadow=true;scene.add(floor);
  const model=buildModel(data);scene.add(model.root);
  const camera=new THREE.PerspectiveCamera(39,innerWidth/innerHeight,2,5000);
- const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=80;controls.maxDistance=2000;controls.maxPolarAngle=Math.PI*.485;controls.minPolarAngle=.03;controls.autoRotateSpeed=.35;controls.screenSpacePanning=true;
+ const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=40;controls.maxDistance=2400;controls.maxPolarAngle=Math.PI*.485;controls.minPolarAngle=.03;controls.autoRotateSpeed=.35;controls.screenSpacePanning=true;
  const mobile=()=>innerWidth<=700;
- const views={overview:{position:[-580,780,-650],target:[87,0,252]},parking:{position:[-180,295,-425],target:[88,0,-50]},top:{position:[95,1150,260],target:[95,0,265]}};
+ // All presets orbit the same point on Pueblo Trail opposite the north-lot entrance.
+ const orbitCenter=[185,0,30];
+ const views={overview:{position:[-580,950,-1050],target:orbitCenter},parking:{position:[-180,295,-425],target:orbitCenter},top:{position:[185,2150,35],target:orbitCenter}};
  let transition=null,currentView='overview',isProposed=false,showCars=false;
- function setView(name,instant=false){currentView=name;const v=views[name],pos=new THREE.Vector3(...v.position),target=new THREE.Vector3(...v.target);if(mobile()&&name==='overview'){pos.set(-620,1000,-910);target.set(70,0,190);}if(mobile()&&name==='parking'){pos.set(-180,420,-530);target.set(95,0,-58);}if(instant){camera.position.copy(pos);controls.target.copy(target);controls.update();}else transition={from:camera.position.clone(),to:pos,oldTarget:controls.target.clone(),target,start:performance.now()};document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('selected',b.dataset.view===name));}
+ function setView(name,instant=false){currentView=name;const v=views[name],pos=new THREE.Vector3(...v.position),target=new THREE.Vector3(...v.target);if(mobile()&&name==='overview'){pos.set(-600,1150,-1300);}if(mobile()&&name==='parking'){pos.set(-180,420,-530);}if(instant){camera.position.copy(pos);controls.target.copy(target);controls.update();}else transition={from:camera.position.clone(),to:pos,oldTarget:controls.target.clone(),target,start:performance.now()};document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('selected',b.dataset.view===name));}
  setView('overview',true);
  // View offset keeps the model comfortably to the right of the desktop controls.
  function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.clearViewOffset();if(!mobile())camera.setViewOffset(innerWidth,innerHeight,-135,0,innerWidth,innerHeight);else camera.setViewOffset(innerWidth,innerHeight,0,65,innerWidth,innerHeight);camera.updateProjectionMatrix();}
