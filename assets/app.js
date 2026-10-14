@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from './OrbitControls.js';
-import {buildModel} from './model.js';
+import {buildModel} from './model.js?v=dg1';
 
 const $=s=>document.querySelector(s),host=$('#scene');
 try {
@@ -20,7 +20,7 @@ try {
  // All presets orbit the same point on Pueblo Trail opposite the north-lot entrance.
  const orbitCenter=[185,0,30];
  const views={overview:{position:[-580,950,-1050],target:orbitCenter},parking:{position:[-180,295,-425],target:orbitCenter},top:{position:[185,2150,35],target:orbitCenter}};
- let transition=null,currentView='overview',isProposed=false,showCars=false;
+ let transition=null,currentView='overview',condition='existing',showCars=false,gateClosed=true;
  function setView(name,instant=false){currentView=name;const v=views[name],pos=new THREE.Vector3(...v.position),target=new THREE.Vector3(...v.target);if(mobile()&&name==='overview'){pos.set(-600,1150,-1300);}if(mobile()&&name==='parking'){pos.set(-180,420,-530);}if(instant){camera.position.copy(pos);controls.target.copy(target);controls.update();}else transition={from:camera.position.clone(),to:pos,oldTarget:controls.target.clone(),target,start:performance.now()};document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('selected',b.dataset.view===name));}
  setView('overview',true);
  // View offset keeps the model comfortably to the right of the desktop controls.
@@ -29,9 +29,18 @@ try {
  const labelItems=model.labels.map(l=>{const e=document.createElement('div');e.className='place-label '+l.kind;const b=document.createElement('b');b.textContent=l.text;e.appendChild(b);if(l.sub){const s=document.createElement('small');s.textContent=l.sub;e.appendChild(s);}$('#labels').appendChild(e);return {data:l,el:e,point:new THREE.Vector3(...l.point)};});
  const projected=new THREE.Vector3();
  function updateLabels(){let used=[];for(const l of labelItems){projected.copy(l.point).project(camera);const x=(projected.x*.5+.5)*innerWidth,y=(-projected.y*.5+.5)*innerHeight;const blocked=(!mobile()&&x<325&&y>95&&y<690)||(mobile()&&y>innerHeight-205);const onScreen=projected.z<1&&projected.z>-1&&x>55&&x<innerWidth-55&&y>90&&y<innerHeight-50;let overlap=used.some(p=>Math.abs(p[0]-x)<135&&Math.abs(p[1]-y)<40);const show=onScreen&&!blocked&&!overlap;l.el.style.display=show?'block':'none';if(show){l.el.style.left=x+'px';l.el.style.top=y+'px';used.push([x,y]);}}const a=controls.getAzimuthalAngle();$('#north-arrow').style.transform=`rotate(${a*180/Math.PI}deg)`;}
- function setState(p){isProposed=p;model.setState(p,showCars);$('#existing').classList.toggle('active',!p);$('#proposed').classList.toggle('active',p);$('#existing').setAttribute('aria-pressed',String(!p));$('#proposed').setAttribute('aria-pressed',String(p));$('#status').textContent=p?'Uploaded proposal':'Current landscape';$('#statusdot').style.background=p?'#ad7650':'#6e8c63';$('#scene-title').textContent=p?'A new north-side parking lot.':'Open desert. Four parcels.';$('#scene-description').textContent=p?'41 spaces, screening walls, frontage improvements and native restoration. The viewpoint stays fixed as you switch.':'Explore the open north lot, sanctuary and southern gardens alongside 57890 Pueblo Trail.';$('#stat-one').textContent=p?'41':'4';$('#stat-one-label').textContent=p?'new parking spaces':'sanctuary parcels';$('#stat-two').textContent=p?'4–6 ft':'+ home';$('#stat-two-label').textContent=p?'screening walls':'57890 Pueblo Trail';$('#foot-condition').textContent=p?'PROPOSED CONDITIONS':'EXISTING CONDITIONS';const l=labelItems.find(l=>l.data.kind==='parking');l.el.querySelector('b').textContent=p?'Proposed north parking':'Open north parcel';}
- $('#existing').onclick=()=>setState(false);$('#proposed').onclick=()=>setState(true);
- $('#boundaries').onchange=e=>model.boundaries.visible=e.target.checked;$('#show-labels').onchange=e=>$('#labels').style.visibility=e.target.checked?'visible':'hidden';$('#show-cars').onchange=e=>{showCars=e.target.checked;model.setState(isProposed,showCars);};
+ function setState(state){condition=state===true?'proposed':state===false?'existing':state;const p=condition!=='existing',concept=condition==='concept';model.setState(condition,showCars);
+  for(const id of ['existing','proposed','concept']){const active=condition===id;$('#'+id).classList.toggle('active',active);$('#'+id).setAttribute('aria-pressed',String(active));}
+  $('#status').textContent=concept?'Concept only · not approved':p?'Uploaded proposal':'Current landscape';$('#statusdot').style.background=concept?'#947248':p?'#ad7650':'#6e8c63';
+  $('#scene-title').textContent=concept?'Decomposed granite + wood fence.':p?'A new north-side parking lot.':'Open desert. Four parcels.';
+  $('#scene-description').textContent=concept?'Tan DG, a two-rail wood fence and a closing driveway gate. Illustrative alternative for discussion; town review required.':p?'41 spaces, screening walls, frontage improvements and native restoration. The viewpoint stays fixed as you switch.':'Explore the open north lot, sanctuary and southern gardens alongside 57890 Pueblo Trail.';
+  $('#stat-one').textContent=p?'41':'4';$('#stat-one-label').textContent=p?'parking spaces':'sanctuary parcels';$('#stat-two').textContent=concept?'2 rail':p?'4–6 ft':'+ home';$('#stat-two-label').textContent=concept?'concept wood fence':p?'screening walls':'57890 Pueblo Trail';
+  $('#foot-condition').textContent=concept?'DG CONCEPT · NOT APPROVED':p?'PROPOSED CONDITIONS':'EXISTING CONDITIONS';$('#gate-control').hidden=!concept;
+  const l=labelItems.find(l=>l.data.kind==='parking');l.el.querySelector('b').textContent=concept?'DG + fence · concept':p?'Proposed north parking':'Open north parcel';
+ }
+ $('#existing').onclick=()=>setState('existing');$('#proposed').onclick=()=>setState('proposed');$('#concept').onclick=()=>setState('concept');
+ $('#gate-toggle').onclick=()=>{gateClosed=!gateClosed;model.setGateClosed(gateClosed);$('#gate-toggle').textContent=gateClosed?'Gate closed · Open gate':'Gate open · Close gate';$('#gate-toggle').setAttribute('aria-pressed',String(gateClosed));};
+ $('#boundaries').onchange=e=>model.boundaries.visible=e.target.checked;$('#show-labels').onchange=e=>$('#labels').style.visibility=e.target.checked?'visible':'hidden';$('#show-cars').onchange=e=>{showCars=e.target.checked;model.setState(condition,showCars);};
  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('#reset').onclick=()=>{controls.autoRotate=false;$('#rotate').setAttribute('aria-pressed','false');setView('overview');};
  function zoom(f){transition=null;const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*f,controls.minDistance,controls.maxDistance));camera.position.copy(controls.target).add(offset);controls.update();}$('#zoom-in').onclick=()=>zoom(.82);$('#zoom-out').onclick=()=>zoom(1.22);
  $('#rotate').onclick=()=>{controls.autoRotate=!controls.autoRotate;$('#rotate').setAttribute('aria-pressed',String(controls.autoRotate));};$('#fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else $('#app').requestFullscreen?.();};controls.addEventListener('start',()=>{transition=null;});

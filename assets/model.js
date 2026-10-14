@@ -5,6 +5,7 @@ export function buildModel(data) {
  const common=new THREE.Group(),existing=new THREE.Group(),proposed=new THREE.Group(),boundaries=new THREE.Group(),carsExisting=new THREE.Group(),carsProposed=new THREE.Group();
  root.add(common,existing,proposed,boundaries,carsExisting,carsProposed);
  common.name='Common site';existing.name='Existing north lot';proposed.name='Proposed improvements';boundaries.name='Parcel outlines';
+ const screening=new THREE.Group(),conceptFence=new THREE.Group();screening.name='Submitted screening walls';conceptFence.name='Concept split-rail fence';proposed.add(screening,conceptFence);conceptFence.visible=false;
  const labels=[],parkingStalls=[];
  const mat=(color,opts={})=>new THREE.MeshStandardMaterial({color,roughness:.92,...opts});
  const m={sand:mat('#cfbda0'),site:mat('#d9c9ac'),native:mat('#cabb9d'),asphalt:mat('#595f5b'),oldpave:mat('#b6b4a5'),concrete:mat('#ded8c6'),wall:mat('#c9b79b'),wood:mat('#694d3b'),bark:mat('#7a664b'),leaf:mat('#75845c'),leaf2:mat('#a2a17a'),shrub:mat('#929774'),roof:mat('#576e67',{metalness:.25,roughness:.68}),white:mat('#eae5d7'),glass:mat('#6c807c',{roughness:.42}),dark:mat('#46524a'),stripe:mat('#f0e8d3'),clay:mat('#ad7552'),rock:mat('#b9ad95'),blue:mat('#638994')};
@@ -102,13 +103,37 @@ export function buildModel(data) {
  poly([[265,-66.4],[289.5,-66.4],[289.5,-51.3],[271,-51.3],[266,-53]],m.site,proposed,.27);
  poly([[266,-18],[288,-18],[283,-7],[273,-1],[266,-1]],m.site,proposed,.27);
  // Screening: residential faces are six feet, with four-foot returns as A1.
- wall([80.8,-66.83],[265.3,-66.83],6,m.wall,proposed);
- wall([265.3,-66.83],[290,-66.83],4,m.wall,proposed);
- wall([80.8,-66.83],[80.8,-15],6,m.wall,proposed);
- wall([80.8,-15],[80.8,0],4,m.wall,proposed);
- wall([290,-66.83],[290,-20],4,m.wall,proposed);
- for(let a=0;a<Math.PI/2-.001;a+=Math.PI/16)wall([270+20*Math.cos(a),-20+20*Math.sin(a)],[270+20*Math.cos(a+Math.PI/16),-20+20*Math.sin(a+Math.PI/16)],4,m.wall,proposed);
- for(const [a,b] of [[80.8,91],[99,172.467],[196.467,257],[265,270]])wall([a,0],[b,0],4,m.wall,proposed);
+ wall([80.8,-66.83],[265.3,-66.83],6,m.wall,screening);
+ wall([265.3,-66.83],[290,-66.83],4,m.wall,screening);
+ wall([80.8,-66.83],[80.8,-15],6,m.wall,screening);
+ wall([80.8,-15],[80.8,0],4,m.wall,screening);
+ wall([290,-66.83],[290,-20],4,m.wall,screening);
+ for(let a=0;a<Math.PI/2-.001;a+=Math.PI/16)wall([270+20*Math.cos(a),-20+20*Math.sin(a)],[270+20*Math.cos(a+Math.PI/16),-20+20*Math.sin(a+Math.PI/16)],4,m.wall,screening);
+ for(const [a,b] of [[80.8,91],[99,172.467],[196.467,257],[265,270]])wall([a,0],[b,0],4,m.wall,screening);
+ // Concept-only material. Fine aggregate uses a mipmapped texture on the SAME surface,
+ // avoiding coplanar layers and preserving all submitted asphalt elsewhere.
+ let aggregateSeed=7391;const pixels=new Uint8Array(128*128*4);
+ for(let i=0;i<pixels.length;i+=4){aggregateSeed=(aggregateSeed*1664525+1013904223)>>>0;const n=(aggregateSeed/4294967296-.5)*38;pixels[i]=196+n;pixels[i+1]=165+n;pixels[i+2]=119+n;pixels[i+3]=255;}
+ const aggregate=new THREE.DataTexture(pixels,128,128);aggregate.colorSpace=THREE.SRGBColorSpace;aggregate.wrapS=aggregate.wrapT=THREE.RepeatWrapping;aggregate.repeat.set(.5,.5);aggregate.magFilter=THREE.LinearFilter;aggregate.minFilter=THREE.LinearMipmapLinearFilter;aggregate.generateMipmaps=true;aggregate.needsUpdate=true;
+ const dgMaterial=mat('#ffffff',{map:aggregate,roughness:1});
+ const fenceWood=mat('#907354'),gateMetal=mat('#4c5046');
+ const postKeys=new Set();
+ function fencePost(x,z){const key=x.toFixed(3)+','+z.toFixed(3);if(postKeys.has(key))return;postKeys.add(key);box(x,z,.55,.55,3.8,fenceWood,conceptFence);}
+ function fenceRun(a,b){const n=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/8);for(let i=0;i<=n;i++){const x=a[0]+(b[0]-a[0])*i/n,z=a[1]+(b[1]-a[1])*i/n;fencePost(x,z);if(i){const prev=[a[0]+(b[0]-a[0])*(i-1)/n,a[1]+(b[1]-a[1])*(i-1)/n];for(const y of [1.4,3]){const rail=wall(prev,[x,z],.3,fenceWood,conceptFence,.28);rail.position.y=y;rail.castShadow=true;}}}}
+ // Close the parking perimeter; only the driveway opens in this illustrative concept.
+ fenceRun([80.8,0],[80.8,-66.83]);fenceRun([80.8,-66.83],[290,-66.83]);fenceRun([290,-66.83],[290,-20]);
+ for(let a=0;a<Math.PI/2-.001;a+=Math.PI/8)fenceRun([270+20*Math.cos(a),-20+20*Math.sin(a)],[270+20*Math.cos(a+Math.PI/8),-20+20*Math.sin(a+Math.PI/8)]);
+ fenceRun([80.8,0],[172.467,0]);fenceRun([196.467,0],[270,0]);
+ const gateLeaves=[];
+ for(const [x,direction] of [[172.467,1],[196.467,-1]]){const leaf=new THREE.Group();leaf.name='Concept vehicle gate leaf';leaf.position.set(x,0,0);conceptFence.add(leaf);gateLeaves.push(leaf);
+  for(const y of [1.4,3])box(direction*6,0,11.4,.3,.3,fenceWood,leaf,y-.15);
+  for(const xx of [.35,11.65])box(direction*xx,0,.3,.35,2.1,fenceWood,leaf,1.1);
+  const from=new THREE.Vector3(direction*.35,1.25,0),to=new THREE.Vector3(direction*11.65,3.1,0),delta=to.clone().sub(from);const brace=add(new THREE.CylinderGeometry(.09,.09,delta.length(),6),fenceWood,leaf);brace.position.copy(from).add(to).multiplyScalar(.5);brace.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());
+  for(const y of [1.4,3])box(0,0,.7,.45,.15,gateMetal,leaf,y);
+ }
+ const latch=box(184.467,0,.8,.5,.25,gateMetal,conceptFence,2.9);latch.name='Concept gate latch';
+ function setGateClosed(closed){gateLeaves[0].rotation.y=closed?0:Math.PI/2;gateLeaves[1].rotation.y=closed?0:-Math.PI/2;latch.visible=closed;}
+ setGateClosed(true);
  // Drive entry (24 ft), with a clear sightline through the screening wall.
  box(184.467,5,24,10,.24,m.concrete,proposed);
  function stripe(a,b,group=proposed,color=m.stripe){wall(a,b,.035,color,group,.18).position.y=.27;}
@@ -168,8 +193,8 @@ export function buildModel(data) {
  for(let i=0;i<6;i++){car(266,213+i*9,Math.PI/2,carsExisting,i);car(266,213+i*9,Math.PI/2,carsProposed,i);}
  for(const b of buckets.values()){const inst=new THREE.InstancedMesh(geo[b.type],b.material,b.matrices.length);b.matrices.forEach((v,i)=>inst.setMatrixAt(i,v));inst.castShadow=true;inst.receiveShadow=true;b.group.add(inst);instanced.push(inst);}
  proposed.visible=false;carsExisting.visible=false;carsProposed.visible=false;
- return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,
-  setState(isProposed,showCars){existing.visible=!isProposed;proposed.visible=isProposed;carsExisting.visible=showCars&&!isProposed;carsProposed.visible=showCars&&isProposed;},
+ return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,screening,conceptFence,parkingSurface,gateLeaves,setGateClosed,
+  setState(state,showCars){const concept=state==='concept',isProposed=state===true||state==='proposed'||concept;existing.visible=!isProposed;proposed.visible=isProposed;screening.visible=!concept;conceptFence.visible=concept;parkingSurface.material=concept?dgMaterial:m.asphalt;carsExisting.visible=showCars&&!isProposed;carsProposed.visible=showCars&&isProposed;},
   stats:{northStalls:parkingStalls.length,standard:parkingStalls.filter(s=>s.type==='standard').length,compact:parkingStalls.filter(s=>s.type==='compact').length,accessible:parkingStalls.filter(s=>s.type==='accessible').length,fixtures:lights.length,parcels:data.parcels.length,trees:data.trees.length}
  };
 }
