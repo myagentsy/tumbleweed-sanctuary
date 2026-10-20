@@ -146,10 +146,12 @@ export function buildModel(data) {
  labels.push({text:'Pueblo Trail',sub:'',point:[83,.2,31],kind:'road'});
  labels.push({text:'Chula Vista',sub:'',point:[320,.2,-94],kind:'road'});
  // Optional cars are a scale reference, not actual event counts or a traffic model.
- const carColors=['#e4d8bd','#f1eee3','#65756b','#b18f70','#7c8486'];
- function car(x,z,angle,group,i){const c=new THREE.Group();group.add(c);c.position.set(x,0,z);c.rotation.y=-angle;box(0,0,5.9,14.5,1.7,mat(carColors[i%5]),c,1);box(0,-.6,5.1,7.9,1.7,m.glass,c,2.6);box(0,-.6,5.05,5.9,.25,mat(carColors[i%5]),c,4.2);for(const wx of [-2.95,2.95])for(const wz of [-4.7,4.7]){let o=add(new THREE.CylinderGeometry(1.05,1.05,.65,10),m.dark,c,wx,1.05,wz);o.rotation.z=Math.PI/2;}return c;}
+ const carColors=['#e4d8bd','#f1eee3','#65756b','#b18f70','#7c8486'],carMaterials=carColors.map(color=>mat(color));
+ function car(x,z,angle,group,i){const c=new THREE.Group();group.add(c);c.position.set(x,0,z);c.rotation.y=-angle;box(0,0,5.9,14.5,1.7,carMaterials[i%5],c,1);box(0,-.6,5.1,7.9,1.7,m.glass,c,2.6);box(0,-.6,5.05,5.9,.25,carMaterials[i%5],c,4.2);for(const wx of [-2.95,2.95])for(const wz of [-4.7,4.7]){let o=add(new THREE.CylinderGeometry(1.05,1.05,.65,10),m.dark,c,wx,1.05,wz);o.rotation.z=Math.PI/2;}return c;}
  const eventStalls=parkingStalls.filter((s,i)=>i%3!==0&&s.type!=='accessible').slice(0,25);
  eventStalls.forEach((s,i)=>car(s.x,s.z,s.angle,carsProposed,i));carsProposed.name='25 event cars';
+ for(let i=0;i<6;i++)car(266,213+i*9,Math.PI/2,carsExisting,i);
+ carsExisting.name='6 cars in existing southern parking';
  // New alternative geometry: all sizes not on the submitted plan are approximate.
  function noiseTexture(base,amount,repeat){const bytes=new Uint8Array(128*128*4);let q=381;for(let i=0;i<bytes.length;i+=4){q=(q*1664525+1013904223)>>>0;const n=(q/4294967296-.5)*amount;for(let c=0;c<3;c++)bytes[i+c]=Math.max(0,Math.min(255,base[c]+n));bytes[i+3]=255;}const t=new THREE.DataTexture(bytes,128,128);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeat,repeat);t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;}
  const tanAsphalt=mat('#ae9670',{roughness:.95});parkingSurface.material=tanAsphalt;
@@ -205,9 +207,29 @@ export function buildModel(data) {
  ].map(l=>({...l,sub:'',kind:'callout',alternative:true}));
  labels.push(...callouts);
  for(const b of buckets.values()){const inst=new THREE.InstancedMesh(geo[b.type],b.material,b.matrices.length);b.matrices.forEach((v,i)=>inst.setMatrixAt(i,v));inst.castShadow=true;inst.receiveShadow=true;b.group.add(inst);instanced.push(inst);}
+ // Batch repeated static parts without changing their geometry or placement.
+ // Keep the movable gate and independently controlled groups separate.
+ root.updateMatrixWorld(true);
+ const unitBox=new THREE.BoxGeometry(1,1,1),matrix=new THREE.Matrix4(),scale=new THREE.Matrix4();
+ function batchParts(group){
+  const batches=new Map(),inverse=group.matrixWorld.clone().invert();
+  group.traverse(o=>{
+   if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||!['BoxGeometry','CylinderGeometry'].includes(o.geometry.type))return;
+   const isBox=o.geometry.type==='BoxGeometry',key=[isBox?'box':JSON.stringify(o.geometry.parameters),o.material.uuid,o.castShadow,o.receiveShadow].join('|');
+   let batch=batches.get(key);if(!batch){batch={geometry:isBox?unitBox:o.geometry,material:o.material,objects:[]};batches.set(key,batch);}batch.objects.push(o);
+  });
+  for(const batch of batches.values()){
+   if(batch.objects.length<2)continue;
+   const combined=new THREE.InstancedMesh(batch.geometry,batch.material,batch.objects.length);
+   combined.name='Batched static parts';combined.userData.staticBatch=true;combined.castShadow=batch.objects[0].castShadow;combined.receiveShadow=batch.objects[0].receiveShadow;
+   batch.objects.forEach((o,i)=>{matrix.multiplyMatrices(inverse,o.matrixWorld);if(o.geometry.type==='BoxGeometry'){const p=o.geometry.parameters;matrix.multiply(scale.makeScale(p.width,p.height,p.depth));}combined.setMatrixAt(i,matrix);o.removeFromParent();});
+   combined.computeBoundingSphere();group.add(combined);
+  }
+ }
+ for(const group of [common,parkingLayout,steelFence,bollards,architectFixtures,people,carsExisting,carsProposed])batchParts(group);
  proposed.visible=false;carsExisting.visible=false;carsProposed.visible=false;
  return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,
-  setState(layer){const alternative=layer!==1,night=layer===3||layer===4;existing.visible=!alternative;proposed.visible=alternative;carsExisting.visible=false;carsProposed.visible=night;people.visible=night;bollards.visible=layer===2||layer===3;architectFixtures.visible=layer===4;bollardLighting.visible=layer===3;architectLighting.visible=layer===4;warmLens.emissiveIntensity=night?1.4:0;setGateClosed(!night);},
+  setState(layer,showCars=true){const alternative=layer!==1,night=layer===3||layer===4;existing.visible=!alternative;proposed.visible=alternative;carsExisting.visible=showCars&&!alternative;carsProposed.visible=showCars&&alternative;people.visible=night;bollards.visible=layer===2||layer===3;architectFixtures.visible=layer===4;bollardLighting.visible=layer===3;architectLighting.visible=layer===4;warmLens.emissiveIntensity=night?1.4:0;setGateClosed(!night);},
   stats:{northStalls:parkingStalls.length,standard:parkingStalls.filter(s=>s.type==='standard').length,compact:parkingStalls.filter(s=>s.type==='compact').length,accessible:parkingStalls.filter(s=>s.type==='accessible').length,fixtures:lights.length,bollards:bollardPositions.length,eventCars:eventStalls.length,parcels:data.parcels.length,trees:data.trees.length}
  };
 }
