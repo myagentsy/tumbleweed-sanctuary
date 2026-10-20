@@ -193,6 +193,9 @@ export function buildModel(data) {
  for(const [i,[x,z]] of bollardPositions.entries()){const body=add(new THREE.CylinderGeometry(.22,.22,2.8,12),bronze,bollards,x,1.4,z);body.name='3.5-ft shielded bollard';box(x,z,.12,.12,.5,bronze,bollards,2.8);box(x,z,.65,.65,.2,bronze,bollards,3.3);const lens=add(new THREE.CircleGeometry(.2,16),warmLens,bollards,x,3.28,z);lens.rotation.x=Math.PI/2;const pool=downlight(x,z,3.25,30,400,bollardLighting);pool.castShadow=i<7||i===17;}
  const lights=[[107.8,-66.3],[152.8,-66.3],[197.8,-66.3],[247.3,-66.3],[109.467,.05],[154.467,.05],[205.467,.05],[232.467,.05],[289.75,-35.85]];
  for(const [x,z] of lights){box(x,z,.3,.3,7.85,bronze,architectFixtures);box(x,z,1.6,.8,.3,bronze,architectFixtures,7.85);box(x,z,1.2,.65,.04,warmLens,architectFixtures,7.8);downlight(x,z,7.78,48,6000,architectLighting);}
+ // Simplified centered emitters must not be occluded by their own fixture posts.
+ // Cars, planting, fencing and other site geometry still cast night shadows.
+ architectFixtures.traverse(o=>{if(o.isMesh)o.castShadow=false;});
  // Four generic human figures, about 5.6 ft tall, kept identical between night views.
  for(const [i,x,z] of [[0,254.467,-1],[1,272.5,4],[2,272.5,25],[3,272.5,44]]){const person=new THREE.Group();person.position.set(x,0,z);people.add(person);const cloth=mat(['#675b4c','#8d8271','#40545c','#7e5746'][i]);add(new THREE.SphereGeometry(.35,12,8),mat('#a57e5f'),person,0,5.2,0);add(new THREE.CylinderGeometry(.5,.4,1.8,10),cloth,person,0,3.8,0);for(const side of [-1,1]){box(side*.24,side*.25,.3,.4,2.8,m.dark,person,.1);const arm=box(side*.65,0,.22,.26,1.65,cloth,person,2.8);arm.rotation.z=side*.12;}}
  const callouts=[

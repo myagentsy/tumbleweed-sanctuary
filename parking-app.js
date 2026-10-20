@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from './assets/OrbitControls.js';
-import {buildModel} from './parking-model.js?v=four4';
+import {buildModel} from './parking-model.js?v=four5';
 
 const $=s=>document.querySelector(s),host=$('#scene');
 try {
@@ -49,7 +49,7 @@ try {
  for(const n of ['0745','0749','0751','0754','0755','0758','0760','0761']){const a=document.createElement('a');a.href=`assets/photo-${n}.jpg`;a.target='_blank';a.rel='noopener';const im=document.createElement('img');im.src=a.href;im.alt=`Uploaded reference IMG_${n}`;im.loading='lazy';const small=document.createElement('small');small.textContent=`IMG_${n}`;a.append(im,small);$('#photos').appendChild(a);}
  $('#loading').remove();setState(1);
  // Limit pixel work while navigating at night, then restore detail when still.
- function updateResolution(now){const moving=condition>=3&&(transition||controls.autoRotate||now-lastMotion<200),budget=moving?1000000:Infinity;const ratio=Math.min(devicePixelRatio,moving?1:2,Math.sqrt(budget/(innerWidth*innerHeight)));if(Math.abs(renderer.getPixelRatio()-ratio)>.001){renderer.setPixelRatio(ratio);renderNeeded=true;}}
+ function updateResolution(now){const moving=condition>=3&&(transition||controls.autoRotate||now-lastMotion<200);const full=Math.min(devicePixelRatio,2),fast=Math.min(devicePixelRatio,1,Math.sqrt(1000000/(innerWidth*innerHeight)));const ratio=moving?(full+fast)/2:full;if(Math.abs(renderer.getPixelRatio()-ratio)>.001){renderer.setPixelRatio(ratio);renderNeeded=true;}}
  let last=performance.now();function animate(now){requestAnimationFrame(animate);if(transition){renderNeeded=true;const t=Math.min(1,(now-transition.start)/850),s=t*t*(3-2*t);camera.position.lerpVectors(transition.from,transition.to,s);controls.target.lerpVectors(transition.oldTarget,transition.target,s);if(t===1)transition=null;}controls.update(Math.min((now-last)/1000,.05));last=now;updateResolution(now);if(renderNeeded){updateLabels();renderer.render(scene,camera);renderNeeded=false;}}requestAnimationFrame(animate);
  window.tumbleweed={model,camera,controls,setState,stats:model.stats};
 } catch(error){console.error(error);$('#loading').innerHTML='<h2>The 3D view could not start</h2><p>Please use a browser with WebGL enabled, then reload.</p><a href="assets/tumbleweed-plans.pdf">Open the source plans</a>';}
