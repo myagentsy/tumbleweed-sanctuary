@@ -6,7 +6,9 @@ export function buildModel(data) {
  root.add(common,existing,proposed,boundaries,carsExisting,carsProposed);
  common.name='Common site';existing.name='Existing north lot';proposed.name='Proposed improvements';boundaries.name='Parcel outlines';
  const parkingLayout=new THREE.Group(),steelFence=new THREE.Group(),bollards=new THREE.Group(),architectFixtures=new THREE.Group(),bollardLighting=new THREE.Group(),architectLighting=new THREE.Group(),people=new THREE.Group();
- parkingLayout.name='Alternative parking layout';proposed.add(parkingLayout,steelFence,bollards,architectFixtures,bollardLighting,architectLighting,people);
+ const alternativeDesign=new THREE.Group(),originalDesign=new THREE.Group(),screening=new THREE.Group(),originalFrontage=new THREE.Group(),originalFixtures=new THREE.Group();
+ alternativeDesign.name='Current alternative';originalDesign.name='Original submitted plan';screening.name='Submitted screening walls';originalFrontage.name='Submitted street frontage';originalFixtures.name='Submitted C1 fixtures';
+ parkingLayout.name='Shared 41-space parking layout';proposed.add(parkingLayout,alternativeDesign,originalDesign);alternativeDesign.add(steelFence,bollards,architectFixtures,bollardLighting,architectLighting,people);originalDesign.add(screening,originalFrontage,originalFixtures);
  steelFence.name='Solid weathered-steel fence';bollards.name='18 low bollards';architectFixtures.name='9 architect fixtures';people.name='Event pedestrians';
  const labels=[],parkingStalls=[];
  const mat=(color,opts={})=>new THREE.MeshStandardMaterial({color,roughness:.92,...opts});
@@ -133,7 +135,8 @@ export function buildModel(data) {
  for(let i=0;i<40;i++){const x=-150+rnd()*140,z=-130+rnd()*110;if(x<-108||z<-101)bush(x,z,1+rnd()*2.2);}
  for(let i=0;i<85;i++){const x=95+rnd()*165,z=-106+rnd()*35;bush(x,z,.75+rnd()*.8,proposed);}
 
- for(let i=0;i<17;i++)rnd(); // Preserve the original random sequence for existing landscape geometry.
+ // Restore the earlier frontage planting without changing the landscape random sequence.
+ for(let i=0;i<17;i++){const x=99+i*9.3;if(x<170.467||x>198.467)bush(x,2,1.05,originalDesign);else rnd();}
  for(const [x,z] of [[271,-61],[282,-57],[279,-11]])bush(x,z,2,proposed);
  for(const [x,z,h] of [[213,87,28],[244,93,19],[160,85,24]])palm(x,z,h);
  for(const [x,z,h] of [[243,80,26],[221,104,25],[138,95,19],[306,110,25],[117,177,20]])shadeTree(x,z,h);
@@ -152,6 +155,29 @@ export function buildModel(data) {
  eventStalls.forEach((s,i)=>car(s.x,s.z,s.angle,carsProposed,i));carsProposed.name='25 event cars';
  for(let i=0;i<6;i++)car(266,213+i*9,Math.PI/2,carsExisting,i);
  carsExisting.name='6 cars in existing southern parking';
+ // Screening: residential faces are six feet, with four-foot returns as A1.
+ wall([80.8,-66.83],[265.3,-66.83],6,m.wall,screening);
+ wall([265.3,-66.83],[290,-66.83],4,m.wall,screening);
+ wall([80.8,-66.83],[80.8,-15],6,m.wall,screening);
+ wall([80.8,-15],[80.8,0],4,m.wall,screening);
+ wall([290,-66.83],[290,-20],4,m.wall,screening);
+ for(let a=0;a<Math.PI/2-.001;a+=Math.PI/16)wall([270+20*Math.cos(a),-20+20*Math.sin(a)],[270+20*Math.cos(a+Math.PI/16),-20+20*Math.sin(a+Math.PI/16)],4,m.wall,screening);
+ for(const [a,b] of [[80.8,91],[99,172.467],[196.467,257],[265,270]])wall([a,0],[b,0],4,m.wall,screening);
+ // Original frontage restored from the earlier submitted-plan model (A1).
+ box(145,12,290,8,.17,m.asphalt,originalFrontage);
+ box(302,-65.5,8,131,.17,m.asphalt,originalFrontage);
+ box(172.467/2,7,172.467,6,.3,m.concrete,originalFrontage);
+ box((196.467+269)/2,7,269-196.467,6,.3,m.concrete,originalFrontage);
+ box(297,-76.5,6,109,.3,m.concrete,originalFrontage);
+ path([[269,7],[283,7],[292,2],[297,-8],[297,-22]],6,m.concrete,originalFrontage,.32);
+ // Keep the 24-ft vehicle opening clear through the curb and concrete apron.
+ for(const [a,b] of [[0,172.467],[196.467,269]])wall([a,10],[b,10],.45,m.concrete,originalFrontage,.5);
+ wall([300,-131],[300,-17],.45,m.concrete,originalFrontage,.5);
+ path([[269,10],[287,10],[296,4],[300,-8],[300,-17]],.55,m.concrete,originalFrontage,.49);
+ box(184.467,5,24,10,.24,m.concrete,originalFrontage);
+ const originalLights=[[102,-61],[152,-61],[197,-61],[246,-61],[102,-5],[152,-5],[197,-5],[246,-5],[279,-23]];
+ for(const [x,z] of originalLights){box(x,z,.3,.3,8,m.dark,originalFixtures);box(x+.65,z,1.6,.8,.3,m.dark,originalFixtures,7.85);box(x+.65,z,1.2,.65,.04,m.white,originalFixtures,7.8);}
+ for(let i=0;i<4;i++){box(227+i*5,128+i*8,1.25,1.2,4,m.dark,originalDesign);box(227+i*5,127.3+i*8,.6,.2,1,m.blue,originalDesign,2.3);}
  // New alternative geometry: all sizes not on the submitted plan are approximate.
  function noiseTexture(base,amount,repeat){const bytes=new Uint8Array(128*128*4);let q=381;for(let i=0;i<bytes.length;i+=4){q=(q*1664525+1013904223)>>>0;const n=(q/4294967296-.5)*amount;for(let c=0;c<3;c++)bytes[i+c]=Math.max(0,Math.min(255,base[c]+n));bytes[i+3]=255;}const t=new THREE.DataTexture(bytes,128,128);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeat,repeat);t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;}
  const tanAsphalt=mat('#ae9670',{roughness:.95});parkingSurface.material=tanAsphalt;
@@ -159,26 +185,26 @@ export function buildModel(data) {
  const fenceSegments=[{a:[80.8,-66.83],b:[298,-66.83],h:6},{a:[80.8,-66.83],b:[80.8,-15],h:6},{a:[80.8,-15],b:[80.8,8],h:4}];
  for(const seg of fenceSegments){wall(seg.a,seg.b,seg.h,steel,steelFence,.12);const n=Math.ceil(Math.hypot(seg.b[0]-seg.a[0],seg.b[1]-seg.a[1])/8);for(let i=0;i<=n;i++){box(seg.a[0]+(seg.b[0]-seg.a[0])*i/n,seg.a[1]+(seg.b[1]-seg.a[1])*i/n,.16,.16,seg.h,bronze,steelFence);}}
  // Rounded 3-ft earth berm, 14-ft base, south and east only. Two breaks in south run.
- const berms=new THREE.Group();berms.name='3-ft planted berms';proposed.add(berms);
+ const berms=new THREE.Group();berms.name='3-ft planted berms';alternativeDesign.add(berms);
  function berm(a,b){const dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length,n=Math.ceil(length/3),v=[],uv=[],ix=[];for(let i=0;i<=n;i++){const along=length*i/n,taper=Math.min(1,along/5,(length-along)/5);for(let j=0;j<=16;j++){const lateral=(j/16-.5)*14,y=.08+3*Math.pow(Math.cos(lateral/7*Math.PI/2),2)*Math.sin(Math.max(0,taper)*Math.PI/2);v.push(a[0]+dx*i/n+nx*lateral,y,a[1]+dz*i/n+nz*lateral);uv.push(along/14,j/16);if(i&&j){const k=i*17+j;ix.push(k,k-1,k-17,k-1,k-18,k-17);}}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();const mound=add(g,m.sand,berms);mound.material.side=THREE.DoubleSide;return {a,b,length};}
  const bermRuns=[berm([80.8,8],[172.467,8]),berm([196.467,8],[268,8]),berm([277,8],[298,8]),berm([298,-66.83],[298,8])];
  // Same driveway center as A1. Asphalt connects to existing road, with no hard frontage.
- poly([[172.467,0],[196.467,0],[196.467,16],[172.467,16]],tanAsphalt,proposed,.22).name='Alternative driveway';
- const slidingGate=new THREE.Group();slidingGate.name='Bi-parting open-frame steel gate';proposed.add(slidingGate);slidingGate.position.set(172.467,0,.6);
+ poly([[172.467,0],[196.467,0],[196.467,16],[172.467,16]],tanAsphalt,alternativeDesign,.22).name='Alternative driveway';
+ const slidingGate=new THREE.Group();slidingGate.name='Bi-parting open-frame steel gate';alternativeDesign.add(slidingGate);slidingGate.position.set(172.467,0,.6);
  const gateLeaves=[];for(const x of [0,12]){const leaf=new THREE.Group();leaf.position.x=x;slidingGate.add(leaf);gateLeaves.push(leaf);
   // Rectangular steel rails and open bays match reference photo IMG_0754.
   for(const y of [.65,4.15])box(6,0,12,.18,.18,bronze,leaf,y);
   for(const xx of [.09,4,8,11.91])box(xx,0,.18,.18,3.5,bronze,leaf,.74);
   for(const xx of [1,11]){const wheel=add(new THREE.CylinderGeometry(.23,.23,.14,12),bronze,leaf,xx,.45,0);wheel.rotation.x=Math.PI/2;}
  }
- for(const x of [172.1,196.8])box(x,.6,.4,.4,4.6,bronze,proposed);
+ for(const x of [172.1,196.8])box(x,.6,.4,.4,4.6,bronze,alternativeDesign);
  function setGateClosed(closed){gateLeaves[0].position.x=closed?0:-12;gateLeaves[1].position.x=closed?12:24;}
  // Firm pedestrian route outside the stalls, aligned with the existing south drive.
- const pedestrianPath=path([[254.467,-10],[254.467,.6],[272.5,.6],[272.5,16]],4,m.concrete,proposed,.25,false);pedestrianPath.name='Firm accessible path (approximate)';
- for(let z=17;z<44;z+=3)box(272.5,z,9,1.5,.025,m.stripe,proposed,.18);
- path([[272.5,44],[272.5,59]],5,m.oldpave,proposed,.2,false);
+ const pedestrianPath=path([[254.467,-10],[254.467,.6],[272.5,.6],[272.5,16]],4,m.concrete,alternativeDesign,.25,false);pedestrianPath.name='Firm accessible path (approximate)';
+ for(let z=17;z<44;z+=3)box(272.5,z,9,1.5,.025,m.stripe,alternativeDesign,.18);
+ path([[272.5,44],[272.5,59]],5,m.oldpave,alternativeDesign,.2,false);
  // Additional outside planting is intentionally schematic, not a surveyed planting plan.
- const addedNative=new THREE.Group();addedNative.name='Concept native planting outside fence and on berm';proposed.add(addedNative);
+ const addedNative=new THREE.Group();addedNative.name='Concept native planting outside fence and on berm';alternativeDesign.add(addedNative);
  function rockAt(x,z,scale,y=0){instance('rock',m.rock,addedNative,x,y+.3,z,scale,.5*scale,scale*.8);}
  function cactusAt(x,z,type,y=0){if(type==='beavertail'){for(let i=0;i<4;i++)instance('bush',m.leaf2,addedNative,x+(i-1.5)*.38,y+.55+i*.15,z,.45,.65,.13);}else{for(let i=0;i<4;i++){const a=i*1.57;branch([x,y,z],[x+Math.cos(a)*.6,y+1.7+i*.2,z+Math.sin(a)*.6],.12,addedNative);instance('tuft',m.leaf2,addedNative,x+Math.cos(a)*.6,y+1.7+i*.2,z+Math.sin(a)*.6,.32,.5,.32);}}}
  function nativeCluster(x,z,i,y=0){if(data.trees.some(t=>Math.hypot(t.x-x,t.z-z)<5))return;if(i%5===0)cactusAt(x,z,'beavertail',y);else if(i%5===1)cactusAt(x,z,'cholla',y);else if(i%5===2&&y===0)yucca(x,z,3.7,addedNative);else{instance('bush',i%2?m.shrub:m.leaf2,addedNative,x,y+1.2,z,1.6,1.4,1.45);instance('bush',m.shrub,addedNative,x+.65,y+.8,z+.3,1.1,.9,1);}
@@ -209,6 +235,14 @@ export function buildModel(data) {
  {text:'Proposed crosswalk, subject to Town Engineer approval',point:[272.5,.5,31]}
  ].map(l=>({...l,sub:'',kind:'callout',alternative:true}));
  labels.push(...callouts);
+ labels.push(...[
+  {text:'6-ft screening walls',point:[162,7,-66.83]},
+  {text:'4-ft street-facing screening walls',point:[228,5,0]},
+  {text:'Dark asphalt · 41 spaces',point:[170,.5,-37]},
+  {text:'6-ft sidewalk, curb and street widening',point:[297,1,-15]},
+  {text:'24-ft driveway · concrete apron',point:[184.467,1,7]},
+  {text:'Nine 8-ft pole fixtures · C1',point:[152,9,-61]}
+ ].map(l=>({...l,sub:'',kind:'callout',original:true})));
  for(const b of buckets.values()){const inst=new THREE.InstancedMesh(geo[b.type],b.material,b.matrices.length);b.matrices.forEach((v,i)=>inst.setMatrixAt(i,v));inst.castShadow=true;inst.receiveShadow=true;b.group.add(inst);instanced.push(inst);}
  // Batch repeated static parts without changing their geometry or placement.
  // Keep the movable gate and independently controlled groups separate.
@@ -229,10 +263,10 @@ export function buildModel(data) {
    combined.computeBoundingSphere();group.add(combined);
   }
  }
- for(const group of [common,parkingLayout,steelFence,bollards,architectFixtures,people,carsExisting,carsProposed])batchParts(group);
+ for(const group of [common,parkingLayout,steelFence,bollards,architectFixtures,people,carsExisting,carsProposed,screening,originalFrontage,originalFixtures])batchParts(group);
  proposed.visible=false;carsExisting.visible=false;carsProposed.visible=false;
- return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,
-  setState(layer,showCars=true){const alternative=layer!==1,night=layer===3||layer===4;existing.visible=!alternative;proposed.visible=alternative;carsExisting.visible=showCars&&!alternative;carsProposed.visible=showCars&&alternative;people.visible=night;bollards.visible=layer===2||layer===3;architectFixtures.visible=layer===4;bollardLighting.visible=layer===3;architectLighting.visible=layer===4;warmLens.emissiveIntensity=night?1.4:0;setGateClosed(!night);},
+ return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,alternativeDesign,originalDesign,screening,originalFrontage,originalFixtures,originalLights,
+  setState(layer,showCars=true){const developed=layer!==1,original=layer===5,night=layer===3||layer===4;existing.visible=!developed;proposed.visible=developed;alternativeDesign.visible=developed&&!original;originalDesign.visible=original;parkingSurface.material=original?m.asphalt:tanAsphalt;carsExisting.visible=showCars&&!developed;carsProposed.visible=showCars&&developed;people.visible=night;bollards.visible=layer===2||layer===3;architectFixtures.visible=layer===4;bollardLighting.visible=layer===3;architectLighting.visible=layer===4;warmLens.emissiveIntensity=night?1.4:0;setGateClosed(!night);},
   stats:{northStalls:parkingStalls.length,standard:parkingStalls.filter(s=>s.type==='standard').length,compact:parkingStalls.filter(s=>s.type==='compact').length,accessible:parkingStalls.filter(s=>s.type==='accessible').length,fixtures:lights.length,bollards:bollardPositions.length,eventCars:eventStalls.length,parcels:data.parcels.length,trees:data.trees.length}
  };
 }
