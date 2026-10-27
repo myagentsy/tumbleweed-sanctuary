@@ -1,4 +1,5 @@
 import * as THREE from './assets/three.module.js';
+import {buildPuebloRoad} from './pueblo-road.js?v=road1';
 
 export function buildModel(data) {
  const root=new THREE.Group();root.name='Tumbleweed Sanctuary';
@@ -31,14 +32,20 @@ export function buildModel(data) {
  function shadeTree(x,z,h){branch([x,0,z],[x,h*.7,z],.55,common);for(let i=0;i<5;i++){const a=i*1.257;instance('bush',m.leaf,common,x+Math.sin(a)*h*.15,h*.7+rnd()*h*.16,z+Math.cos(a)*h*.15,h*.25,h*.2,h*.21);}}
  function palm(x,z,h){branch([x,0,z],[x+.8,h,z],.65,common);instance('bush',m.bark,common,x+.8,h-2,z,1.1,3,1.1);for(let i=0;i<9;i++){const a=i*6.283/9,q=new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.cos(a)*1.2,a,Math.sin(a)*1.2));instance('leaf',m.leaf,common,x+.8+Math.sin(a)*2.4,h+.5,z+Math.cos(a)*2.4,1.2,7,1.2,q);}}
 
- // Level ground: vertical terrain is explicitly out of scope of the source set.
- const earth=box(85,265,590,940,7,m.sand,common,-7);earth.receiveShadow=true;
- poly([[-210,-205],[380,-205],[380,735],[-210,735]],m.native,common,.015);
+ // Leave a genuine opening below the dirt road, so soil cannot fill the washout.
+ box(190,265,380,940,7,m.sand,common,-7);
+ box(-105,-94.5,210,221,7,m.sand,common,-7);
+ box(-105,389.5,210,691,7,m.sand,common,-7);
+ box(-105,30,210,28,4.4,m.sand,common,-7);
+ poly([[-210,-205],[380,-205],[380,735],[-210,735],[-210,44],[0,44],[0,16],[-210,16]],m.native,common,.015);
  for(const p of data.parcels)poly(p.points,p.apn.endsWith('01')?m.site:m.sand,common,.045);
- poly(data.house.parcel,mat('#d0bea0'),common,.06);
+ // The parcel extends into the ROW; its soil skin stops at the traveled road.
+ const homeSoil=[];for(let i=0;i<data.house.parcel.length;i++){const a=data.house.parcel[i],b=data.house.parcel[(i+1)%data.house.parcel.length];if(a[1]<=16)homeSoil.push(a);if((a[1]<=16)!==(b[1]<=16)){const t=(16-a[1])/(b[1]-a[1]);homeSoil.push([a[0]+t*(b[0]-a[0]),16]);}}
+ poly(homeSoil,mat('#d0bea0'),common,.06);
  // Existing roads, including the T-junction on the east.
  // One continuous road surface: no coplanar intersection at the junction.
- const road=poly([[-210,16],[306,16],[306,-209],[334,-209],[334,16],[380,16],[380,44],[-210,44]],m.asphalt,common,.14);road.name='Road surface';
+ const road=poly([[0,16],[306,16],[306,-209],[334,-209],[334,16],[380,16],[380,44],[0,44]],m.asphalt,common,.14);road.name='Existing paved road — north lot south and east';
+ const puebloRoad=buildPuebloRoad(common,labels);
  // House: county footprint is preserved; roof and facade are simplified.
  poly(data.house.footprint,m.white,common,.1,data.house.height*.74);
  poly(data.house.footprint,mat('#9c8e76'),common,data.house.height*.74,.6);
@@ -265,7 +272,7 @@ export function buildModel(data) {
  }
  for(const group of [common,parkingLayout,steelFence,bollards,architectFixtures,people,carsExisting,carsProposed,screening,originalFrontage,originalFixtures])batchParts(group);
  proposed.visible=false;carsExisting.visible=false;carsProposed.visible=false;
- return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,alternativeDesign,originalDesign,screening,originalFrontage,originalFixtures,originalLights,
+ return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,alternativeDesign,originalDesign,screening,originalFrontage,originalFixtures,originalLights,puebloRoad,
   setState(layer,showCars=true){const developed=layer!==1,original=layer===5,night=layer===3||layer===4;existing.visible=!developed;proposed.visible=developed;alternativeDesign.visible=developed&&!original;originalDesign.visible=original;parkingSurface.material=original?m.asphalt:tanAsphalt;carsExisting.visible=showCars&&!developed;carsProposed.visible=showCars&&developed;people.visible=night;bollards.visible=layer===2||layer===3;architectFixtures.visible=layer===4;bollardLighting.visible=layer===3;architectLighting.visible=layer===4;warmLens.emissiveIntensity=night?1.4:0;setGateClosed(!night);},
   stats:{northStalls:parkingStalls.length,standard:parkingStalls.filter(s=>s.type==='standard').length,compact:parkingStalls.filter(s=>s.type==='compact').length,accessible:parkingStalls.filter(s=>s.type==='accessible').length,fixtures:lights.length,bollards:bollardPositions.length,eventCars:eventStalls.length,parcels:data.parcels.length,trees:data.trees.length}
  };
