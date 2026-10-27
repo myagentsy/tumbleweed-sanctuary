@@ -66,7 +66,7 @@ const material=color=>new THREE.MeshStandardMaterial({color,roughness:.94,side:T
 function soilCopy(m,context,soil){const g=m.geometry.clone();g.translate(0,-.06,0);return add(context,g,soil,`Supporting soil — ${m.name}`);}
 
 export function buildJoinedSurfaces(model,context,graded,surface){
- const concrete=material('#ded8c6'),drainConcrete=material('#d7e5e2'),asphalt=material('#595f5b'),soil=material('#c4b08d'),sand=material('#d9c9ac'),wall=material('#c9b79b');
+ const concrete=material('#d0d2cf'),drainConcrete=material('#d7e5e2'),asphalt=material('#595f5b'),soil=material('#c4b08d'),sand=material('#d9c9ac'),wall=material('#c9b79b');
  const x=profiles.flatMap(p=>p.points.map(p=>p[0])),z=[...profiles.map(p=>p.z),gutterZ-1.5,gutterZ+1.5];
  const ribbonHole=rect(80.8,gutterZ-1.5,290,gutterZ+1.5);
  const pavement=add(graded,grid(parkingOutline,parkingY,{x,z,holes:[ribbonHole]}),asphalt,'Finished parking pavement');
@@ -141,7 +141,7 @@ export function buildJoinedSurfaces(model,context,graded,surface){
   const m=add(graded,geometry(values),concrete,name);m.castShadow=true;return sections.map(s=>[s[0],s.at(-1)]);
  }
  for(const [points,name] of [[west,'West sidewalk'],[path,'Continuous corner sidewalk']]){
-  const sidewalk=stroke(points,-3,2.725,-.08,.30,name),curb=stroke(points,2.725,3.275,-.08,.45,`${name} curb`);
+  const sidewalk=stroke(points,-3,3,-.08,.30,name),curb=stroke(points,3,3.55,-.08,.45,`${name} curb`);
   for(let i=0;i<sidewalk.length;i++)joins.push([sidewalk[i][1],curb[i][0]]);
   if(points===path)cornerOuter=curb.filter((_,i)=>points[i][0]>=269&&points[i][1]>=-22).map(s=>[s[1][0],s[1][2]]);
  }

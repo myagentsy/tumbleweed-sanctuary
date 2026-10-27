@@ -1,7 +1,7 @@
 import * as THREE from './assets/three.module.js';
 import {datum,gutterZ,ditchX,basinZ,northZ,profiles,ditchSpots,elevation,parkingY,channelY,ribbonY,contextY} from './plan-grading.js?v=grade3';
 
-import {buildJoinedSurfaces} from './graded-surfaces.js?v=grade3';
+import {buildJoinedSurfaces} from './graded-surfaces.js?v=frontage1';
 
 // Figure 3-4, IS/MND PDF p.37, and drainage narrative p.23.
 // XY placement is traced/aligned to the retained architectural footprint.
