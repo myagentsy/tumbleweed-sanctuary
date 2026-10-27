@@ -11,7 +11,7 @@ export function buildModel(data) {
  alternativeDesign.name='Current alternative';originalDesign.name='Original submitted plan';screening.name='Submitted screening walls';originalFrontage.name='Submitted street frontage';originalFixtures.name='Submitted C1 fixtures';
  parkingLayout.name='Shared 41-space parking layout';proposed.add(parkingLayout,alternativeDesign,originalDesign);alternativeDesign.add(steelFence,bollards,architectFixtures,bollardLighting,architectLighting,people);originalDesign.add(screening,originalFrontage,originalFixtures);
  steelFence.name='Solid weathered-steel fence';bollards.name='18 low bollards';architectFixtures.name='9 architect fixtures';people.name='Event pedestrians';
- const labels=[],parkingStalls=[];
+ const labels=[],parkingStalls=[],frontagePlanting=[];
  const mat=(color,opts={})=>new THREE.MeshStandardMaterial({color,roughness:.92,...opts});
  const m={sand:mat('#cfbda0'),site:mat('#d9c9ac'),native:mat('#cabb9d'),asphalt:mat('#595f5b'),oldpave:mat('#b6b4a5'),concrete:mat('#ded8c6'),wall:mat('#c9b79b'),wood:mat('#694d3b'),bark:mat('#7a664b'),leaf:mat('#75845c'),leaf2:mat('#a2a17a'),shrub:mat('#929774'),roof:mat('#576e67',{metalness:.25,roughness:.68}),white:mat('#eae5d7'),glass:mat('#6c807c',{roughness:.42}),dark:mat('#46524a'),stripe:mat('#f0e8d3'),clay:mat('#ad7552'),rock:mat('#b9ad95'),blue:mat('#638994')};
  function add(geo,material,group=common,x=0,y=0,z=0){let o=new THREE.Mesh(geo,material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o;}
@@ -130,11 +130,21 @@ export function buildModel(data) {
  stall(269,187,11,19,Math.PI/2,common,'accessible');
  for(let i=0;i<4;i++){stall(238+i*5.0,134+i*8,9,19,-.52,common);}
  // Native planting positions from B1/B2 and traced A3 symbols. Sizes illustrative.
+ // Correct the visual street-edge planting, which conflicted with Layer 5 widening.
+ // Keep the source coordinates in the data; this is not a surveyed relocation plan.
+ const frontageGround=new THREE.Group(),frontageExisting=new THREE.Group();
+ for(const [group,parent] of [[frontageGround,common],[frontageExisting,existing]]){group.name='Grounded frontage planting';group.position.y=-.08;parent.add(group);}
  for(const t of data.trees){if(t.x<0||t.x>330||t.z>695)continue;let g=common;
   // Existing Joshua trees outside the original parking footprint remain in every layer.
   // Keep the entrance yucca in the existing view only; preserve every Joshua tree.
   if(t.type==='MY'&&t.x>172.467&&t.x<196.467&&t.z>=0&&t.z<=16)g=existing;
-  if(t.type==='JT')joshua(t.x,t.z,8+rnd()*7,g);else if(t.type==='MY')yucca(t.x,t.z,3+rnd()*3,g);else shadeTree(t.x,t.z,12+rnd()*6);
+  let x=t.x,z=t.z;
+  if(x>=0&&x<270&&z>=4&&z<=16){
+   z=t.type==='JT'?-6:1.8;
+   g=g===common?frontageGround:frontageExisting;
+   frontagePlanting.push({type:t.type,source:[t.x,t.z],point:[x,-.08,z],group:g});
+  }
+  if(t.type==='JT')joshua(x,z,8+rnd()*7,g);else if(t.type==='MY')yucca(x,z,3+rnd()*3,g);else shadeTree(x,z,12+rnd()*6);
  }
  for(let i=0;i<170;i++){const x=rnd()*290,z=-131+rnd()*131;if(x<75||z<-111)bush(x,z,1+rnd()*2.8);}
  for(let i=0;i<330;i++){const x=rnd()*326,z=370+rnd()*317;const d=Math.abs(x-60);bush(x,z,.8+rnd()*2.4);}
@@ -272,7 +282,7 @@ export function buildModel(data) {
  }
  for(const group of [common,parkingLayout,steelFence,bollards,architectFixtures,people,carsExisting,carsProposed,screening,originalFrontage,originalFixtures])batchParts(group);
  proposed.visible=false;carsExisting.visible=false;carsProposed.visible=false;
- return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,alternativeDesign,originalDesign,screening,originalFrontage,originalFixtures,originalLights,puebloRoad,
+ return {root,common,existing,proposed,boundaries,carsExisting,carsProposed,labels,parkingStalls,lights,bollardPositions,parkingLayout,parkingSurface,slidingGate,gateLeaves,steelFence,berms,bollards,architectFixtures,bollardLighting,architectLighting,people,setGateClosed,alternativeDesign,originalDesign,screening,originalFrontage,originalFixtures,originalLights,puebloRoad,frontagePlanting,
   setState(layer,showCars=true){const developed=layer!==1,original=layer===5,night=layer===3||layer===4;existing.visible=!developed;proposed.visible=developed;alternativeDesign.visible=developed&&!original;originalDesign.visible=original;parkingSurface.material=original?m.asphalt:tanAsphalt;carsExisting.visible=showCars&&!developed;carsProposed.visible=showCars&&developed;people.visible=night;bollards.visible=layer===2||layer===3;architectFixtures.visible=layer===4;bollardLighting.visible=layer===3;architectLighting.visible=layer===4;warmLens.emissiveIntensity=night?1.4:0;setGateClosed(!night);},
   stats:{northStalls:parkingStalls.length,standard:parkingStalls.filter(s=>s.type==='standard').length,compact:parkingStalls.filter(s=>s.type==='compact').length,accessible:parkingStalls.filter(s=>s.type==='accessible').length,fixtures:lights.length,bollards:bollardPositions.length,eventCars:eventStalls.length,parcels:data.parcels.length,trees:data.trees.length}
  };

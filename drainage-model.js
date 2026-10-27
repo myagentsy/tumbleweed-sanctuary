@@ -55,14 +55,28 @@ export function buildDrainage(model) {
  const overflow=tube([[wellX,-.933333,wellZ],[wellX,-.933333,12],[72,-.933333,16]],1/6,cyan,'4-inch overflow to parkway drain — route/profile schematic');overflow.userData.diameterInches=4;
  for(const z of [0,8])arrow([wellX,-.75,z],[wellX,-.75,z+5],.4);
  const outlet=mesh(new THREE.BoxGeometry(2,.35,.7),blue,'Parkway drain marker — SD 406');outlet.position.set(72,-.93,16);
+ // The drawing ends at the parkway outlet. Dashed blue continues the resident's
+ // downstream concern, not an asserted hydraulic result or an engineered route.
+ const roadRunoff=new THREE.Group();roadRunoff.name='Potential overflow toward existing washout — illustrative';network.add(roadRunoff);
+ const roadPoint=(x,z)=>[x,contextY(x,z)+(x<0?.14-model.puebloRoad.roadSection(x).depth+.45:.5),z];
+ const roadRoute=[[72,16],[60,22],[35,28],[10,34],[0,40],...[-12,-35,-60,-85,-110,-140,-170,-200].map(x=>[x,model.puebloRoad.roadSection(x).center])].map(([x,z])=>roadPoint(x,z));
+ const routeLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(roadRoute.map(p=>new THREE.Vector3(...p))),new THREE.LineDashedMaterial({color:'#057eb1',dashSize:3,gapSize:2,depthTest:false,depthWrite:false}));routeLine.computeLineDistances();routeLine.renderOrder=34;roadRunoff.add(routeLine);
+ function roadArrow(a,b,size=1){const o=arrow(a,b,size);roadRunoff.add(o);o.line.visible=false;o.userData.illustrative=true;return o;}
+ for(let i=1;i<roadRoute.length;i++)roadArrow(roadRoute[i-1],roadRoute[i],1.15);
+ // Converging surface arrows make the concentration at the pavement edge clear.
+ for(const [x,z] of [[18,21],[22,41]]){
+  const a=roadPoint(x,z),b=roadPoint(-12,model.puebloRoad.roadSection(-12).center);
+  const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),routeLine.material);l.computeLineDistances();l.renderOrder=34;roadRunoff.add(l);roadArrow(a,b,1.15);
+ }
  // Labels follow the rebuilt finished surface when the overlay is off.
  for(const label of model.labels.filter(l=>l.original))label.point[1]+=elevation(label.point[0],label.point[2]);
  const labels=[
   {text:'36″ catch basin',sub:'GRATE 3362.00 · PIPE INVERT 3361.00',point:[ditchX,3,basinZ],kind:'callout drainage-label',drainage:true},
   {text:'Drywell + 4″ overflow',sub:'UNDERGROUND · DRYWELL SIZE UNSPECIFIED',point:[wellX,-2,wellZ+5],kind:'callout drainage-label',drainage:true},
-  {text:'Parking falls west → ditch falls south',sub:'FIGURE 3-4 · TRUE VERTICAL SCALE',point:[185,interpolate(185)+2,gutterZ],kind:'callout drainage-label',drainage:true}
+  {text:'Parking falls west → ditch falls south',sub:'FIGURE 3-4 · TRUE VERTICAL SCALE',point:[185,interpolate(185)+2,gutterZ],kind:'callout drainage-label',drainage:true},
+  {text:'Potential overflow → existing washout',sub:'DASHED BLUE · ILLUSTRATIVE DOWNSTREAM ROUTE',point:[-35,5,35],kind:'callout drainage-label',drainage:true}
  ];model.labels.unshift(...labels);
- return {root,context,graded,cars,surface,network,labels,joined,datum,elevation,contextY,parkingY,channelY,profiles,ditchSpots,anchors,inlet,overflow,well,
+ return {root,context,graded,cars,surface,network,roadRunoff,roadRoute,labels,joined,datum,elevation,contextY,parkingY,channelY,profiles,ditchSpots,anchors,inlet,overflow,well,
   setVisible(active,showCars,showOverlay=false){
    root.visible=active;model.common.visible=!active;cars.visible=active&&showCars;network.visible=showOverlay;
    model.parkingLayout.visible=!active;for(const o of sharedNative)o.visible=!active;

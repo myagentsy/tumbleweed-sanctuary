@@ -4,3 +4,5 @@
 @media(min-width:701px){.drainage-detail #drainage-legend{top:125px;bottom:auto}}
 
 .grade-note{font-size:10px;font-weight:600;margin-bottom:8px;color:#315f60}.grade-views{display:flex;gap:6px}.grade-views button{margin-top:9px;border:1px solid #a4c3ca;border-radius:5px;background:#f4fafa;color:#285668;padding:7px 6px;font-size:10px;flex:1;cursor:pointer}.grade-views #drainage-closeup{width:auto}@media(max-width:700px){.grade-note{font-size:9px;margin-bottom:5px}.grade-views button{font-size:9px;padding:5px;margin-top:5px}}
+
+#runoff-closeup{width:100%;margin-top:7px;border:1px solid #8bb7c1;border-radius:5px;background:#effafd;color:#1a6477;padding:8px;font-size:10px;cursor:pointer}.road-view.drainage-on #road-note{border-color:#80aebd} @media(max-width:700px){#runoff-closeup{font-size:9px;padding:6px;margin-top:5px}}
