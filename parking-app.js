@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from './assets/OrbitControls.js';
 import {buildModel} from './parking-model.js?v=five1';
-import {buildDrainage} from './drainage-model.js?v=grade2';
+import {buildDrainage} from './drainage-model.js?v=grade3';
 
 const $=s=>document.querySelector(s),host=$('#scene');
 try {

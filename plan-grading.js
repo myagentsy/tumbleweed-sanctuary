@@ -47,14 +47,29 @@ const mix=(a,b,t)=>a+(b-a)*clamp(t);
 // a survey of the residence, street or southern sanctuary parcels.
 export const naturalY=(x,z)=>.034806109634305*x+.020230178893138*z+.453501501996;
 const streetY=x=>interpolate([[0,.45],[75.8,2.10],[290,9.15],[334,10.6]],x);
+export const parkingOutline=[[80.8,northZ],[290,northZ],[290,-20]];
+for(let a=Math.PI/24;a<=Math.PI/2+.001;a+=Math.PI/24)parkingOutline.push([270+20*Math.cos(a),-20+20*Math.sin(a)]);
+parkingOutline.push([80.8,0]);
+function lotGround(x,z) {
+ let closest=null,distance=Infinity,inside=true;
+ for(let i=0;i<parkingOutline.length;i++){
+  const a=parkingOutline[i],b=parkingOutline[(i+1)%parkingOutline.length],dx=b[0]-a[0],dz=b[1]-a[1];
+  if(dx*(z-a[1])-dz*(x-a[0])<0)inside=false;
+  const t=clamp(((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)),px=a[0]+t*dx,pz=a[1]+t*dz,d=Math.hypot(x-px,z-pz);
+  if(d<distance){distance=d;closest=[px,pz];}
+ }
+ if(inside)return parkingY(x,z);
+ return mix(naturalY(x,z),parkingY(...closest),1-distance/10);
+}
 export function contextY(x,z) {
- let y=naturalY(x,z);
- const curvedEast=z>-20?270+Math.sqrt(Math.max(0,400-(z+20)**2)):290;
- if(z>=northZ&&z<=0&&x>=80.8&&x<=curvedEast)y=parkingY(x,z);
- else if(z>=northZ-3&&z<northZ&&x>=80.8&&x<=290)y=mix(y,parkingY(x,northZ),(z-northZ+3)/3);
- if(z>=northZ&&z<=basinZ&&Math.abs(x-ditchX)<3.1)y=mix(y,channelY(z),clamp((3.1-Math.abs(x-ditchX))/1.5));
- if(z>0&&z<=16&&x>=73&&x<=310)y=mix(parkingY(x,0),streetY(x),z/16);
- else if(z>0&&z<=16)y=mix(y,streetY(x),z/16);
+ let y=x>70&&x<301&&z>northZ-10&&z<=0?lotGround(x,z):naturalY(x,z);
+ if(z>=northZ-2&&z<=basinZ+2&&Math.abs(x-ditchX)<3.1){
+  const across=clamp((3.1-Math.abs(x-ditchX))/1.6),ends=clamp((z-northZ+2)/2)*clamp((basinZ+2-z)/2);
+  y=mix(y,channelY(z)+Math.min(1,Math.abs(x-ditchX)/1.5)*.1,across*ends);
+ }
+ // The south tie-in starts at the SAME boundary height as the north side.
+ // This removes the discontinuity through the rounded sidewalk at z=0.
+ if(z>0&&z<=16)y=mix(lotGround(x,0),streetY(x),z/16);
  if(z>16)y=mix(streetY(x),0,(z-44)/40);
  y*=clamp((x+30)/30)*clamp((380-x)/40)*clamp((z+205)/74);
  return y;
